@@ -1,0 +1,46 @@
+# Run the whole system with:  docker compose up --build
+# Then open http://localhost:8080   (demo login: admin@hotels.test / Hotel@12345)
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: hotel_admin
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-hotel_pass}
+      POSTGRES_DB: hotels
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U hotel_admin -d hotels"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  api:
+    build: ./backend
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      PORT: 4000
+      NODE_ENV: production
+      JWT_SECRET: ${JWT_SECRET:-change-me-in-a-real-deployment}
+      DATABASE_URL: postgres://hotel_admin:${DB_PASSWORD:-hotel_pass}@db:5432/hotels
+      DB_SSL: "false"
+      DB_POOL_MAX: 20
+      BCRYPT_ROUNDS: 10
+      CORS_ORIGIN: "*"
+      LOGIN_RATE_MAX: 1000
+      RUN_SEED: ${RUN_SEED:-true}
+
+  web:
+    build: ./frontend
+    restart: unless-stopped
+    depends_on:
+      - api
+    ports:
+      - "${WEB_PORT:-8080}:80"
+
+volumes:
+  pgdata:

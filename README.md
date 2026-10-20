@@ -42,6 +42,20 @@ npm install
 npm run dev                # http://localhost:5173 (proxies /api to :4000)
 ```
 
+## Run with Docker (one command)
+
+Needs Docker Desktop (or Docker Engine + Compose).
+
+```bash
+docker compose up --build        # starts PostgreSQL, the API and the website
+# open http://localhost:8080     (admin@hotels.test / Hotel@12345)
+node loadtest/node-load.js http://localhost:8080 100 60
+docker compose down              # stop (add -v to also delete the database data)
+```
+
+Optional settings via environment variables or a `.env` file next to `docker-compose.yml`: `DB_PASSWORD`, `JWT_SECRET`, `WEB_PORT`, `RUN_SEED=false` (skip demo data).
+The API container creates the tables on start. Change `JWT_SECRET` and `DB_PASSWORD` before using it anywhere public.
+
 ## 100-user load test
 
 Simulates 100 concurrent staff, each logging in and repeating: list rooms / bookings / guests / invoices, search availability, create bookings.
@@ -96,4 +110,5 @@ deploy/     aws-provision.sh, deploy.sh, setup-ec2.sh, nginx.conf, aws-teardown.
 ## What was and wasn't verified
 
 Tested here: database schema and seed, every API flow (login, roles, tenant isolation, booking, check-in/out, invoices, payment, reports), a 10-way concurrent double-booking race (exactly one succeeds), frontend production build, 100-user load test.
-**Not run:** the AWS scripts and Nginx config were syntax-checked only, since there is no AWS account or Nginx in the build environment. Expect to possibly fix small issues on the first real deploy (for example AWS quotas or a region without a default VPC).
+**Not run:** the Docker setup (Dockerfiles, `docker-compose.yml`) could not be built where this project was made, because image downloads were blocked. The compose file validates, but expect to possibly fix small issues on your first `docker compose up --build`.
+**Also not run:** the AWS scripts and Nginx config were syntax-checked only, since there is no AWS account or Nginx in the build environment. Expect to possibly fix small issues on the first real deploy (for example AWS quotas or a region without a default VPC).
